@@ -1,2 +1,9 @@
+# for python environments
 **/env*/
-Sammelmappe_Eroerterungen_FairDebattierenundEroertern_Giera_UniPotsdam.pdf
+# for any data regarding the essays that can't be published
+**/data/
+# for the original dataset
+**/Sammelmappe_Eroerterungen_FairDebattierenundEroertern_Giera_UniPotsdam.pdf
+# for python internal stuff
+**/.mypy_cache/
+**/__pycache__/
