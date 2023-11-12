@@ -8,3 +8,4 @@
 - der env order ist .gitignored, für die nutzung von virtual environments.
 - git lfs ist nicht aktiviert. dateien sind auf 200mb größe beschränkt.
 - **unser datensatz ist nicht-öffentlich und darf daher nicht in diesem repo veröffentlicht werden!**
+- data.py enthält beispielcode zum lesen und schreiben unseres datensatzes.
