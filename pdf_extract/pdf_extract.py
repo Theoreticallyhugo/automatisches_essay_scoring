@@ -66,7 +66,7 @@ def write_essays(destination, essays):
             .gitignored by default.
         essays: list of dict, where each dict is an essay
     """
-    with open(destination, "w") as w:
+    with open(destination, "w", encoding="utf-8") as w:
         # convert all essays in the list from dict to json. then concatenate them
         # with \n inbetween, so that each essay has its own line
         # then write all those lines to the target file
