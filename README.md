@@ -9,3 +9,4 @@
 - git lfs ist nicht aktiviert. dateien sind auf 200mb größe beschränkt.
 - **unser datensatz ist nicht-öffentlich und darf daher nicht in diesem repo veröffentlicht werden!**
 - data.py enthält beispielcode zum lesen und schreiben unseres datensatzes.
+- ./pdf_extract/README.md enthält information zur nutzung des datensatzes

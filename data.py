@@ -2,6 +2,8 @@ import json
 
 """
 this file contains example code for reading and writing our dataset
+
+NOTE: for more information on the dataset, please refer to ./pdf_extract/README.md
 """
 
 
