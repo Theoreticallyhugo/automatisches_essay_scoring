@@ -7,3 +7,6 @@
 # for python internal stuff
 **/.mypy_cache/
 **/__pycache__/
+
+**/.DS_Store
+

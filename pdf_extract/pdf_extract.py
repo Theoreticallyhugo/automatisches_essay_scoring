@@ -17,6 +17,11 @@ some essays exist twice.
 def pdf2json(file):
     """
     reads a pdf, extracts essays with their ids and saves them to a list of dict
+
+    sidenote: since we always append idless text to the previous essay, we first
+        need to save all essays, even those with doubling ids, as otherwise, we
+        may append to the wrong essay.
+
     args:
         file: str of a path to where the pdf is stored
     returns: list of dict, where each dict is an essay with the
@@ -51,10 +56,27 @@ def pdf2json(file):
 
             # add the essay to the list as dictionary
             essays.append({"id": id, "text": extract})
-        except:
+        except ValueError:
             # if there is no id in the file, append the text to the previous essay
             essays[-1]["text"] += extract
-    return essays
+
+    # now, after getting all the essays, remove ones that are double
+    clean_essays = []
+    ids = []
+    duplicates = 0
+    for essay in essays:
+        if essay["id"] in ids:
+            duplicates += 1
+            continue
+        else:
+            ids.append(essay["id"])
+            clean_essays.append(essay)
+
+    print(
+        f"on {len(reader.pages)} pages there were {len(essays)} essays, of which {duplicates} "
+        + f"were duplicates. returning {len(clean_essays)} unique essays."
+    )
+    return clean_essays
 
 
 def write_essays(destination, essays):
