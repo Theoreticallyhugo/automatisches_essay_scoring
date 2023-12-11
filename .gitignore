@@ -4,6 +4,7 @@
 **/data/
 # for the original dataset
 **/Sammelmappe_Eroerterungen_FairDebattierenundEroertern_Giera_UniPotsdam.pdf
+**/essays.json
 # for python internal stuff
 **/.mypy_cache/
 **/__pycache__/
