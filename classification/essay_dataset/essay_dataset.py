@@ -16,10 +16,10 @@
 
 
 import json
-import os
 import datasets
 
 import pandas as pd
+
 from pathlib import Path
 
 
@@ -252,6 +252,40 @@ class NewDataset(datasets.GeneratorBasedBuilder):
             )
             raise e
 
+    def _get_valid_ids(self, ratings, essays):
+        """
+        tries to match essays to ratings in order to find ids that appear in
+        both contexts
+
+        args:
+            ratings: pandas dataframe with the essays metadata
+            essays: list of dictionaries of essays
+        returns:
+            list of int: valid ids
+        """
+        ids = []
+        for essay in essays:
+            rating = ratings.loc[ratings["Participant.Private.ID"] == essay["id"]]
+            if not rating.empty:
+                ids.append(essay["id"])
+        return ids
+
+    def _split_ids(self, ids, split):
+        """
+        gets a list of ids and returns the chunk of ids that correspond to the
+        given split
+
+        args:
+            ids: list of int, being the valid ids
+            split: str, {train, test, dev}
+        """
+        if split == "train":
+            return ids[: int(len(ids) * 0.8)]
+        elif split == "test":
+            return ids[int(len(ids) * 0.8) : int(len(ids) * 0.9)]
+        elif split == "dev":
+            return ids[int(len(ids) * 0.9) :]
+
     # method parameters are unpacked from `gen_kwargs` as given in `_split_generators`
     def _generate_examples(self, split):
         # TODO: This method handles input defined in _split_generators to yield (key, example) tuples from the dataset.
@@ -259,8 +293,13 @@ class NewDataset(datasets.GeneratorBasedBuilder):
         data_path = self._find_data()
         ratings = self._get_excel_dataframe(data_path)
         essays = self._get_essays_json(data_path)
+        ids = self._split_ids(self._get_valid_ids(ratings, essays), split)
+
         for key, essay in enumerate(essays):
-            rating = ratings.loc[ratings["Participant.Private.ID"] == essay["id"]]
+            id = essay["id"]
+            if id not in ids:
+                continue
+            rating = ratings.loc[ratings["Participant.Private.ID"] == id]
             if rating.empty:
                 print("this boy empty " + str(essay["id"]))
                 continue
@@ -270,7 +309,7 @@ class NewDataset(datasets.GeneratorBasedBuilder):
                     # der text wie im PDF
                     "text": str(essay["text"]),
                     # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
-                    "Participant_Private_ID": int(essay["id"]),
+                    "Participant_Private_ID": id,
                     # Mittelwert Gesamteindruck
                     "MW_B001": float(rating["MW_B001"]),
                     # Mittelwert Inhaltliche Gestaltung
