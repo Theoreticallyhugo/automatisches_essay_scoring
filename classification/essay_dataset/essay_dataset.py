@@ -102,7 +102,7 @@ class NewDataset(datasets.GeneratorBasedBuilder):
                     # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
                     "Participant_Private_ID": datasets.Value("int32"),
                     # Mittelwert Gesamteindruck
-                    "MW_B001": datasets.Value("float"),
+                    "MW_B001": datasets.Value("int32"),
                     # Mittelwert Inhaltliche Gestaltung
                     "MW_C001": datasets.Value("float"),
                     # Mittelwert Textaufbau
@@ -213,7 +213,10 @@ class NewDataset(datasets.GeneratorBasedBuilder):
         returns:
             dataframe with evaluation scores
         """
-        file = data_path / "FDE_final_alle Ratings_mit Legende Spalten_071123.xlsx"
+        file = (
+            data_path
+            / "FDE_final_alle Ratings_mit Legende Spalten_071123.xlsx"
+        )
 
         try:
             # read by default 1st sheet of an excel file
@@ -265,7 +268,9 @@ class NewDataset(datasets.GeneratorBasedBuilder):
         """
         ids = []
         for essay in essays:
-            rating = ratings.loc[ratings["Participant.Private.ID"] == essay["id"]]
+            rating = ratings.loc[
+                ratings["Participant.Private.ID"] == essay["id"]
+            ]
             if not rating.empty:
                 ids.append(essay["id"])
         return ids
@@ -304,6 +309,9 @@ class NewDataset(datasets.GeneratorBasedBuilder):
                 print("this boy empty " + str(essay["id"]))
                 continue
             if self.config.name == "mittelwerte":
+                # REMOVING ALL ESSAYS WITH INVALID SCORE "8"
+                if float(rating["MW_B001"]) == 8:
+                    continue
                 # Yields examples as (key, example) tuples
                 yield key, {
                     # der text wie im PDF
@@ -311,7 +319,7 @@ class NewDataset(datasets.GeneratorBasedBuilder):
                     # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
                     "Participant_Private_ID": id,
                     # Mittelwert Gesamteindruck
-                    "MW_B001": float(rating["MW_B001"]),
+                    "MW_B001": int(rating["MW_B001"]),
                     # Mittelwert Inhaltliche Gestaltung
                     "MW_C001": float(rating["MW_C001"]),
                     # Mittelwert Textaufbau

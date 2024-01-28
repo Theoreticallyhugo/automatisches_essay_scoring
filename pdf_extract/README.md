@@ -19,6 +19,7 @@ keep in mind to use good keys, so that they are both understandable, and unique 
 ## requirements
 
 - pypdf
+- tqdm
 - tested for python 3.8
 
 ### runtime
