@@ -2,6 +2,8 @@ import datasets
 import evaluate
 import numpy as np
 
+import datetime
+
 from transformers import AutoTokenizer
 from transformers import DataCollatorWithPadding
 from transformers import (
@@ -17,6 +19,7 @@ ds = datasets.load_dataset(
 
 # removes all but the selected columns
 ds = ds.select_columns(["text", "MW_B001"])
+# renames the column to what the model can deal with
 ds = ds.rename_column("MW_B001", "label")
 
 print("done loading the ds")
@@ -35,13 +38,15 @@ tokenized_ds = ds.map(preprocess_function, batched=True)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
 
-accuracy = evaluate.load("accuracy")
+accuracy = evaluate.load("f1")
 
 
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
     predictions = np.argmax(predictions, axis=1)
-    return accuracy.compute(predictions=predictions, references=labels)
+    return accuracy.compute(
+        predictions=predictions, references=labels, average="macro"
+    )
 
 
 id2label = {
@@ -98,6 +103,15 @@ trainer = Trainer(
     compute_metrics=compute_metrics,
 )
 
+print("starting training")
 trainer.train()
+print("done with training, and some uploading")
 
 trainer.create_model_card()
+# trainer.save_model(output_dir)
+now = datetime.datetime.now()
+url = trainer.push_to_hub(
+    commit_message=f"trainer: training complete at {now}.", blocking=True
+)
+print("done with all the uploadeing")
+# _________________________________________
