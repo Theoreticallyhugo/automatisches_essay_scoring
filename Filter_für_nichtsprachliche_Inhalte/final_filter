@@ -1,0 +1,119 @@
+import fitz
+from nltk.tokenize import RegexpTokenizer
+import emoji
+import os
+import re
+import phunspell
+import gc
+
+
+def preprocess_text(text):
+    # Entferne überflüssige Leerzeichen und Zeilenumbrüche
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+#sich wiederholende Satzzeichen
+def mark_repeated_punctuation(text):
+    repeated_punctuation_pattern = re.compile(r"([.,!?;:])\1{1,}")
+    return repeated_punctuation_pattern.sub(r" <repeated>\g<0></repeated> ", text)
+
+
+# aufgrund von Worten, welche großgeschrieben wurden, aber kein Nomen sind
+# diese wurden fälschlicherweise als falsch deklariert
+def is_potential_noun(word, index, tokens):
+    """Prüft, ob das Wort ein potenzielles Nomen sein könnte."""
+    # Ein Wort könnte ein Nomen sein, wenn es großgeschrieben ist und nicht am Satzanfang steht
+    if word[0].isupper() and index != 0:
+        # Überprüfe das vorherige Zeichen
+        if tokens[index - 1] in {',', ';', ':', '('}:
+            return True
+        # Überprüfe, ob das vorherige Token ein Wort ist und mit einem Punkt endet
+        if tokens[index - 1][-1] == '.':
+            return False
+        return True
+    return False
+
+def is_special_tag(token):
+    return token.startswith('<emoji>') or token.endswith('</emoji>') \
+           or token.startswith('<repeated>') or token.endswith('</repeated>')
+
+
+spell_check_cache = {}
+
+#Rechtschreibung prüfen
+def check_spelling(word, phun):
+    try:
+        if word not in spell_check_cache:
+            spell_check_cache[word] = phun.lookup(word)
+        return spell_check_cache[word]
+    except MemoryError:
+        print(f"MemoryError bei der Verarbeitung des Wortes: {word}")
+        return True  # Überspringe das Wort
+
+#Rechtschreibfehler markieren
+def mark_misspellings(text, phun):
+    tokenizer = RegexpTokenizer(r'<emoji>|<\/emoji>|<repeated>|<\/repeated>|\w+|[.,!?;:()]+')
+    tokens = tokenizer.tokenize(text)
+
+    marked_text = ""
+    for i, token in enumerate(tokens):
+        if token in ["<emoji>", "</emoji>", "<repeated>", "</repeated>"]:
+            marked_text += token + " "
+            continue
+
+        word = token.strip('.,!?;:()')
+
+        if word and not word.isdigit() and not check_spelling(word, phun):
+            marked_text += f" <spelling>{token}</spelling> "
+        else:
+            marked_text += token + " "
+
+    return marked_text.strip()
+
+#es heißt zwar remove emojis,dabei werden sie jedoch in text gewandelt und markiert
+def remove_emojis_and_mark_misspellings(pdf_path):
+    phun = phunspell.Phunspell('de_DE')
+    pdf_document = fitz.open(pdf_path)
+    processed_text = ""
+
+    for page_number in range(pdf_document.page_count):
+        page = pdf_document[page_number]
+        text = page.get_text()
+
+        # Vorverarbeitung des Textes, um überflüssige Leerzeichen und Zeilenumbrüche zu entfernen
+        text = preprocess_text(text)
+
+        # Verarbeite den Text für jede Seite
+        text = emoji.demojize(text, delimiters=(" <emoji>", "</emoji>"))
+        text = mark_repeated_punctuation(text)
+        text = mark_misspellings(text, phun)
+
+        processed_text += text
+
+        # Speicher freigeben nach jeder Seite
+        gc.collect()
+
+    pdf_document.close()
+    return processed_text
+# Pfad zur PDF-Datei
+pdf_file_path = r"C:\Users\Test\Desktop\UNI\Filter für nichtsprachliche Inhalte\Sammelmappe_Eroerterungen_FairDebattierenundEroertern_Giera_UniPotsdam.pdf"
+
+
+# Verarbeite die PDF und entferne Emojis, markiere dann
+processed_text = remove_emojis_and_mark_misspellings(pdf_file_path)
+
+
+# Extrahiere den ursprünglichen Dateinamen
+original_filename = os.path.splitext(os.path.basename(pdf_file_path))[0]
+
+
+# Pfad für die Ausgabedatei
+output_file_path = fr"C:\Users\Test\Desktop\UNI\Filter für nichtsprachliche Inhalte\Bereinigte_Datei.txt"
+
+
+# Speichere das verarbeitete Ergebnis in einer separaten Textdatei
+with open(output_file_path, 'w', encoding='utf-8') as output_file:
+    output_file.write(processed_text)
+
+
+print(f"Bereinigter Text wurde in {output_file_path} gespeichert.")
