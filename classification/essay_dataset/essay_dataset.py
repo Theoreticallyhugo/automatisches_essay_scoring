@@ -80,7 +80,7 @@ class NewDataset(datasets.GeneratorBasedBuilder):
         ),
         # FIXME
         datasets.BuilderConfig(
-            name="second_domain",
+            name="cleaned",
             version=VERSION,
             description="This part of my dataset covers a second domain",
         ),
@@ -102,39 +102,85 @@ class NewDataset(datasets.GeneratorBasedBuilder):
                     # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
                     "Participant_Private_ID": datasets.Value("int32"),
                     # Mittelwert Gesamteindruck
-                    "MW_B001": datasets.Value("int32"),
+                    "MW_B001": datasets.ClassLabel(
+                        names=[
+                            "1.0",
+                            "1.5",
+                            "2.0",
+                            "2.5",
+                            "3.0",
+                            "3.5",
+                            "4.0",
+                            "4.5",
+                            "5.0",
+                        ]
+                    ),
                     # Mittelwert Inhaltliche Gestaltung
-                    "MW_C001": datasets.Value("float"),
+                    "MW_C001": datasets.Value("int32"),
                     # Mittelwert Textaufbau
-                    "MW_D001": datasets.Value("float"),
+                    "MW_D001": datasets.Value("int32"),
                     # Mittelwert Inhaltlicher Zusammenhang/Thementfaltung
-                    "MW_D002": datasets.Value("float"),
+                    "MW_D002": datasets.Value("int32"),
                     # Mittelwert Stil/Adressatenorientierung
-                    "MW_E211": datasets.Value("float"),
+                    "MW_E211": datasets.Value("int32"),
                     # Mittelwert Wortwahl/Wortschatz
-                    "MW_E221": datasets.Value("float"),
+                    "MW_E221": datasets.Value("int32"),
                     # Mittelwert Satzkonstruktion
-                    "MW_E231": datasets.Value("float"),
+                    "MW_E231": datasets.Value("int32"),
                     # Mittelwert Grammatik
-                    "MW_E102": datasets.Value("float"),
+                    "MW_E102": datasets.Value("int32"),
                     # Mittelwert Orthografie
-                    "MW_E101": datasets.Value("float"),
+                    "MW_E101": datasets.Value("int32"),
                     # Mittelwert Zeichensetzung
-                    "MW_ZS": datasets.Value("float"),
+                    "MW_ZS": datasets.Value("int32"),
                     # Mittelwert Sprachsystematik
-                    "MW_SYS": datasets.Value("float"),
+                    "MW_SYS": datasets.Value("int32"),
                     # Mittelwert Sprachpragmatik
-                    "MW_PRA": datasets.Value("float"),
+                    "MW_PRA": datasets.Value("int32"),
                 }
             )
         else:  # This is an example to show how to have different features for "first_domain" and "second_domain"
-            # TODO
             features = datasets.Features(
                 {
-                    "sentence": datasets.Value("string"),
-                    "option2": datasets.Value("string"),
-                    "second_domain_answer": datasets.Value("string")
-                    # These are the features of your dataset like images, labels ...
+                    "text": datasets.Value("string"),
+                    # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
+                    "Participant_Private_ID": datasets.Value("int32"),
+                    # Mittelwert Gesamteindruck
+                    "MW_B001": datasets.ClassLabel(
+                        names=[
+                            "1.0",
+                            "1.5",
+                            "2.0",
+                            "2.5",
+                            "3.0",
+                            "3.5",
+                            "4.0",
+                            "4.5",
+                            "5.0",
+                        ]
+                    ),
+                    # Mittelwert Inhaltliche Gestaltung
+                    "MW_C001": datasets.Value("int32"),
+                    # Mittelwert Textaufbau
+                    "MW_D001": datasets.Value("int32"),
+                    # Mittelwert Inhaltlicher Zusammenhang/Thementfaltung
+                    "MW_D002": datasets.Value("int32"),
+                    # Mittelwert Stil/Adressatenorientierung
+                    "MW_E211": datasets.Value("int32"),
+                    # Mittelwert Wortwahl/Wortschatz
+                    "MW_E221": datasets.Value("int32"),
+                    # Mittelwert Satzkonstruktion
+                    "MW_E231": datasets.Value("int32"),
+                    # Mittelwert Grammatik
+                    "MW_E102": datasets.Value("int32"),
+                    # Mittelwert Orthografie
+                    "MW_E101": datasets.Value("int32"),
+                    # Mittelwert Zeichensetzung
+                    "MW_ZS": datasets.Value("int32"),
+                    # Mittelwert Sprachsystematik
+                    "MW_SYS": datasets.Value("int32"),
+                    # Mittelwert Sprachpragmatik
+                    "MW_PRA": datasets.Value("int32"),
                 }
             )
         print("features generated")
@@ -255,6 +301,49 @@ class NewDataset(datasets.GeneratorBasedBuilder):
             )
             raise e
 
+    def _get_cleaned_essays(self, data_path):
+        """
+        get the essays from the new cleaned dataset
+
+        return:
+            dictionary with id as key and list of strings as text
+        """
+        file = data_path / "Bereinigte_Datei.txt"
+
+        try:
+            with open(file, "r", encoding="utf-8") as r:
+                # for each line, convert it from json to dict and add it to the list
+                # of essays to return
+                raw_essays = r.readline().split(" ")
+                essays = []
+                for word in raw_essays:
+                    if len(word) == 7:
+                        try:
+                            id = int(word)
+                            essays.append({"id": id, "text": []})
+                        except:
+                            continue
+                    elif len(word) == 8:
+                        try:
+                            id = int(word[1:])
+                            essays.append({"id": id, "text": []})
+                        except:
+                            continue
+                    elif word == "":
+                        continue
+                    else:
+                        essays[-1]["text"].append(word)
+                for i in range(len(essays)):
+                    essays[i]["text"] = " ".join(essays[i]["text"])
+                print("read the cleaned essays")
+                return essays
+        except FileNotFoundError as e:
+            print(f"no file at: {file}")
+            print(
+                'please make sure that "Bereinigte_Datei.txt" is in the data folder.'
+            )
+            raise e
+
     def _get_valid_ids(self, ratings, essays):
         """
         tries to match essays to ratings in order to find ids that appear in
@@ -297,7 +386,10 @@ class NewDataset(datasets.GeneratorBasedBuilder):
         # The `key` is for legacy reasons (tfds) and is not important in itself, but must be unique for each example.
         data_path = self._find_data()
         ratings = self._get_excel_dataframe(data_path)
-        essays = self._get_essays_json(data_path)
+        if self.config.name == "mittelwerte":
+            essays = self._get_essays_json(data_path)
+        else:
+            essays = self._get_cleaned_essays(data_path)
         ids = self._split_ids(self._get_valid_ids(ratings, essays), split)
 
         for key, essay in enumerate(essays):
@@ -308,46 +400,37 @@ class NewDataset(datasets.GeneratorBasedBuilder):
             if rating.empty:
                 print("this boy empty " + str(essay["id"]))
                 continue
-            if self.config.name == "mittelwerte":
                 # REMOVING ALL ESSAYS WITH INVALID SCORE "8"
-                if float(rating["MW_B001"]) == 8:
-                    continue
-                # Yields examples as (key, example) tuples
-                yield key, {
-                    # der text wie im PDF
-                    "text": str(essay["text"]),
-                    # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
-                    "Participant_Private_ID": id,
-                    # Mittelwert Gesamteindruck
-                    "MW_B001": int(rating["MW_B001"]),
-                    # Mittelwert Inhaltliche Gestaltung
-                    "MW_C001": float(rating["MW_C001"]),
-                    # Mittelwert Textaufbau
-                    "MW_D001": float(rating["MW_D001"]),
-                    # Mittelwert Inhaltlicher Zusammenhang/Thementfaltung
-                    "MW_D002": float(rating["MW_D002"]),
-                    # Mittelwert Stil/Adressatenorientierung
-                    "MW_E211": float(rating["MW_E211"]),
-                    # Mittelwert Wortwahl/Wortschatz
-                    "MW_E221": float(rating["MW_E221"]),
-                    # Mittelwert Satzkonstruktion
-                    "MW_E231": float(rating["MW_E231"]),
-                    # Mittelwert Grammatik
-                    "MW_E102": float(rating["MW_E102"]),
-                    # Mittelwert Orthografie
-                    "MW_E101": float(rating["MW_E101"]),
-                    # Mittelwert Zeichensetzung
-                    "MW_ZS": float(rating["MW_ZS"]),
-                    # Mittelwert Sprachsystematik
-                    "MW_SYS": float(rating["MW_SYS"]),
-                    # Mittelwert Sprachpragmatik
-                    "MW_PRA": float(rating["MW_PRA"]),
-                }
-            else:
-                yield key, {
-                    "sentence": data["sentence"],
-                    "option2": data["option2"],
-                    "second_domain_answer": ""
-                    if split == "test"
-                    else data["second_domain_answer"],
-                }
+            if int(rating["MW_B001"].iloc[0]) == 8:
+                continue
+            # Yields examples as (key, example) tuples
+            yield key, {
+                # der text wie im PDF
+                "text": str(essay["text"]),
+                # Von Gorilla zugeordneter Code (singulär) (so in dem PDF)
+                "Participant_Private_ID": id,
+                # Mittelwert Gesamteindruck
+                "MW_B001": str(rating["MW_B001"].iloc[0]),
+                # Mittelwert Inhaltliche Gestaltung
+                "MW_C001": int(rating["MW_C001"].iloc[0]),
+                # Mittelwert Textaufbau
+                "MW_D001": int(rating["MW_D001"].iloc[0]),
+                # Mittelwert Inhaltlicher Zusammenhang/Thementfaltung
+                "MW_D002": int(rating["MW_D002"].iloc[0]),
+                # Mittelwert Stil/Adressatenorientierung
+                "MW_E211": int(rating["MW_E211"].iloc[0]),
+                # Mittelwert Wortwahl/Wortschatz
+                "MW_E221": int(rating["MW_E221"].iloc[0]),
+                # Mittelwert Satzkonstruktion
+                "MW_E231": int(rating["MW_E231"].iloc[0]),
+                # Mittelwert Grammatik
+                "MW_E102": int(rating["MW_E102"].iloc[0]),
+                # Mittelwert Orthografie
+                "MW_E101": int(rating["MW_E101"].iloc[0]),
+                # Mittelwert Zeichensetzung
+                "MW_ZS": int(rating["MW_ZS"].iloc[0]),
+                # Mittelwert Sprachsystematik
+                "MW_SYS": int(rating["MW_SYS"].iloc[0]),
+                # Mittelwert Sprachpragmatik
+                "MW_PRA": int(rating["MW_PRA"].iloc[0]),
+            }

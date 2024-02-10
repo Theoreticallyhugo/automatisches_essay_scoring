@@ -13,9 +13,7 @@ from transformers import (
 )
 
 
-ds = datasets.load_dataset(
-    "essay_dataset", "mittelwerte", trust_remote_code=True
-)
+ds = datasets.load_dataset("essay_dataset", "cleaned", trust_remote_code=True)
 
 # removes all but the selected columns
 ds = ds.select_columns(["text", "MW_B001"])
@@ -95,7 +93,7 @@ model = AutoModelForSequenceClassification.from_pretrained(
 )
 
 training_args = TrainingArguments(
-    output_dir="distilbert_B001",
+    output_dir="B001_cleaned",
     learning_rate=2e-5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=16,
